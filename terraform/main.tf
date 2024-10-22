@@ -193,7 +193,7 @@ resource "aws_security_group" "ml_backend_security_group" {
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    cidr_blocks = [var.subnet_cidr_blocks[2]]
+    cidr_blocks = ["10.0.0.0/16"]
     description     = "Redis access from training server"
   }
 

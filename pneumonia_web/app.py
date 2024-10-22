@@ -26,7 +26,7 @@ def index():
     for key in keys_to_display:
         data[key] = r.hgetall(key)
 
-    return render_template('index.html', data=data, page=page, total_keys=total_keys)
+    return render_template('index.html', data=data, page=page, total_keys=total_keys, items_per_page=ITEMS_PER_PAGE)
 
 if __name__ == '__main__':
     app.run(debug=True)
