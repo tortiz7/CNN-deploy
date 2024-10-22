@@ -58,3 +58,7 @@ yarn-error.log*
 # Sensitive or environment-specific files
 *.pem
 .env
+
+#model files
+*.keras
+*.h5
