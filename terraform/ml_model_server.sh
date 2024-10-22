@@ -35,7 +35,7 @@ nvidia-smi
 aws s3 cp s3://x-raysbucket/chest_xray/ ~/chest_xray --recursive
 
 # Clone repository
-git clone <your-repo-url> ~/CNN_deploy
+git clone https://github.com/elmorenox/CNN_deploy.git
 cd ~/CNN_deploy
 
 # Create and activate virtual environment
@@ -51,6 +51,7 @@ echo "Starting model training..."
 python3 cnn.py
 
 # Run inference test
+# redis database must be set up on ml app server before this run so that db is available
 echo "Running inference tests..."
 python3 inference.py
 

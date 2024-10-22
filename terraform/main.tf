@@ -245,7 +245,7 @@ resource "aws_instance" "ml_ui_server" {
 
 resource "aws_instance" "ml_app_server" {
   ami                    = var.ec2_ami
-  instance_type          = "t3.micro"
+  instance_type          = "t3.medium"
   subnet_id              = aws_subnet.ml_private_subnet_app.id
   vpc_security_group_ids = [aws_security_group.ml_backend_security_group.id]
   key_name               = var.key_name

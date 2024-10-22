@@ -4,6 +4,7 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 import logging
 from datetime import datetime
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +41,7 @@ def predict():
             return jsonify({"error": "Invalid file type"}), 400
 
         # Process image
-        img = image.load_img(file, target_size=(224, 224))
+        img = image.load_img(io.BytesIO(file.read()), target_size=(224, 224))
         img_array = image.img_to_array(img) / 255.
         img_array = np.expand_dims(img_array, axis=0)
         
