@@ -26,6 +26,10 @@ def table():
         return render_template('partials/error.html', 
                              message="Unable to fetch data from API"), 500
 
+@app.route('/predict')
+def predict_page():
+    return render_template('predict.html')
+
 @app.route('/upload_predict', methods=['POST'])
 def upload_predict():
     try:
