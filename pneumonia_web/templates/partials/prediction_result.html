@@ -1,0 +1,20 @@
+{# templates/partials/prediction_result.html #}
+{% if error %}
+    <div class="alert alert-danger mt-3">
+        <strong>Error:</strong> {{ error }}
+    </div>
+{% else %}
+    <div class="alert {% if prediction == 'Pneumonia' %}alert-danger{% else %}alert-success{% endif %} mt-3">
+        <h4 class="alert-heading">
+            {% if prediction == 'Pneumonia' %}
+                ⚠️ Pneumonia Detected
+            {% else %}
+                ✅ Normal
+            {% endif %}
+        </h4>
+        <p>Confidence: {{ confidence }}</p>
+        <hr>
+        <small class="text-muted">File: {{ filename }}</small><br>
+        <small class="text-muted">Analyzed at: {{ timestamp }}</small>
+    </div>
+{% endif %}

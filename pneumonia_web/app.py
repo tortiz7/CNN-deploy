@@ -26,5 +26,36 @@ def table():
         return render_template('partials/error.html', 
                              message="Unable to fetch data from API"), 500
 
+@app.route('/upload_predict', methods=['POST'])
+def upload_predict():
+    try:
+        if 'file' not in request.files:
+            return render_template('partials/prediction_result.html',
+                                error="No file uploaded")
+        
+        file = request.files['file']
+        if file.filename == '':
+            return render_template('partials/prediction_result.html',
+                                error="No file selected")
+
+        if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            return render_template('partials/prediction_result.html',
+                                error="Only .jpg, .jpeg, and .png files are allowed")
+
+        # Make prediction request to API
+        files = {'file': (file.filename, file.stream, file.content_type)}
+        response = requests.post(f'{API_URL}/predict', files=files)
+        
+        if not response.ok:
+            return render_template('partials/prediction_result.html',
+                                error=response.json().get('error', 'API Error'))
+
+        result = response.json()
+        return render_template('partials/prediction_result.html', **result)
+
+    except Exception as e:
+        return render_template('partials/prediction_result.html',
+                             error=f"Error: {str(e)}")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
