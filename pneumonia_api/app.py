@@ -5,6 +5,7 @@ import numpy as np
 import logging
 from datetime import datetime
 import io
+import redis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
