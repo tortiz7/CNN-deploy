@@ -17,3 +17,4 @@ source venv/bin/active
 pip install --upgrade pip
 pip install -r requirements.txt
 
+gunicorn --config gunicorn.conf.py app:app

@@ -15,3 +15,12 @@ source venv/bin/active
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# allow access from the ML training server
+# vim /etc/redis/redis.conf
+# bind 0.0.0.0 
+# protected-mode no
+# sudo systemctl restart redis
+
+#start gunicorn
+gunicorn --config gunicorn.conf.py app:app
+

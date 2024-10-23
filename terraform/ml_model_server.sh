@@ -27,8 +27,9 @@ echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
 echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
 source ~/.bashrc
 
-# Verify NVIDIA setup
-nvidia-smi
+
+echo "GPU setup complete. Rebooting..."
+sudo reboot
 
 # Download dataset from S3
 # aws cli must be set up before this step
@@ -52,8 +53,6 @@ python3 cnn.py
 
 # Run inference test
 # redis database must be set up on ml app server before this run so that db is available
+# Inference script must be configured with the private ip of the api server
 echo "Running inference tests..."
 python3 inference.py
-
-echo "Setup complete. Rebooting..."
-sudo reboot
