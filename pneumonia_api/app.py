@@ -35,6 +35,8 @@ def predict():
 
         file = request.files['file']
         
+        file_content = file.read()
+        encoded_image = base64.b64encode(file_content).decode('utf-8')
         # Basic file validation
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
@@ -60,6 +62,7 @@ def predict():
             "prediction": result,
             "confidence": f"{confidence:.2%}",
             "filename": file.filename,
+            "image": encoded_image,  # Send base64 image
             "timestamp": str(datetime.now())
         })
 
