@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request
-import redis
+import requests
+import os
 
 app = Flask(__name__)
-r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
-# Number of items per page
-ITEMS_PER_PAGE = 50
+# Config
+API_URL = 'http://backendapi:5000' 
 
 @app.route('/')
 def index():
@@ -13,23 +13,18 @@ def index():
 
 @app.route('/table')
 def table():
-    page = request.args.get('page', 1, type=int)
-    keys = r.keys('*')
-    total_keys = len(keys)
+    try:
+        page = request.args.get('page', 1, type=int)
+        response = requests.get(f'{API_URL}/predictions', params={'page': page})
+        response.raise_for_status() 
+        data = response.json()
+        
+        return render_template('partials/table.html', **data)
     
-    start = (page - 1) * ITEMS_PER_PAGE
-    end = start + ITEMS_PER_PAGE
-    keys_to_display = keys[start:end]
-
-    data = {}
-    for key in keys_to_display:
-        data[key] = r.hgetall(key)
-
-    return render_template('table_partial.html', 
-                         data=data, 
-                         page=page, 
-                         total_keys=total_keys, 
-                         items_per_page=ITEMS_PER_PAGE)
+    except requests.RequestException as e:
+        app.logger.error(f"API request failed: {str(e)}")
+        return render_template('partials/error.html', 
+                             message="Unable to fetch data from API"), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

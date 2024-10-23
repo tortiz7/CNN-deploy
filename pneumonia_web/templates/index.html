@@ -1,32 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pneumonia Data Table</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-</head>
-<body class="container py-4">
-    <h1 class="mb-4">Pneumonia Data Table</h1>
-    
-    <div class="card">
-        <div class="card-body">
-            <div 
-                hx-get="/table" 
-                hx-trigger="load, pagination-updated from:body"
-                hx-target="#data-table"
-                hx-indicator=".spinner-border">
-                <div id="data-table">
-                    <!-- Table will be loaded here -->
-                </div>
+{% extends "base.html" %}
+
+{% block title %}Pneumonia Data{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Prediction Results</h2>
+    </div>
+    <div class="card-body">
+        <div 
+            hx-get="{{ url_for('table') }}" 
+            hx-trigger="load, pagination-updated from:body"
+            hx-target="#data-table"
+            hx-indicator=".spinner-border">
+            <div id="data-table">
+                <!-- Table will be loaded here -->
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Loading spinner -->
-    <div class="spinner-border htmx-indicator" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</body>
-</html>
+<!-- Loading spinner -->
+<div class="spinner-border htmx-indicator" role="status">
+    <span class="visually-hidden">Loading...</span>
+</div>
+{% endblock %}
