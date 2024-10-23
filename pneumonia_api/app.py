@@ -35,8 +35,6 @@ def predict():
 
         file = request.files['file']
         
-        file_content = file.read()
-        encoded_image = base64.b64encode(file_content).decode('utf-8')
         # Basic file validation
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
@@ -44,8 +42,17 @@ def predict():
         if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             return jsonify({"error": "Invalid file type"}), 400
 
+        # Read file once
+        file_content = file.read()
+        
+        # Create base64
+        encoded_image = base64.b64encode(file_content).decode('utf-8')
+        
+        # Create BytesIO for image processing
+        file_bytes = io.BytesIO(file_content)
+        
         # Process image
-        img = image.load_img(io.BytesIO(file.read()), target_size=(224, 224))
+        img = image.load_img(file_bytes, target_size=(224, 224))
         img_array = image.img_to_array(img) / 255.
         img_array = np.expand_dims(img_array, axis=0)
         
@@ -62,7 +69,7 @@ def predict():
             "prediction": result,
             "confidence": f"{confidence:.2%}",
             "filename": file.filename,
-            "image": encoded_image,  # Send base64 image
+            "image": encoded_image,
             "timestamp": str(datetime.now())
         })
 
