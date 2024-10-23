@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 import io
 import redis
-
+import base64
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
