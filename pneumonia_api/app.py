@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, current_app
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
@@ -90,12 +90,10 @@ def get_predictions():
         data = {}
         for key in keys_to_display:
             try:
-                data[key.decode('utf-8')] = {
-                    k.decode('utf-8'): v.decode('utf-8') 
-                    for k, v in r.hgetall(key).items()
-                }
+                # No need to decode since decode_responses=True
+                data[key] = r.hgetall(key)
             except Exception as e:
-                current_app.logger.error(f"Error processing key {key}: {str(e)}")
+                app.logger.error(f"Error processing key {key}: {str(e)}")
                 continue
 
         return jsonify({
@@ -107,10 +105,10 @@ def get_predictions():
         })
 
     except redis.RedisError as e:
-        current_app.logger.error(f"Redis error: {str(e)}")
+        app.logger.error(f"Redis error: {str(e)}")  # Use app.logger instead of current_app
         return jsonify({'error': 'Database error'}), 500
     except Exception as e:
-        current_app.logger.error(f"Unexpected error: {str(e)}")
+        app.logger.error(f"Unexpected error: {str(e)}")  # Use app.logger instead of current_app
         return jsonify({'error': 'Server error'}), 500
 
 if __name__ == '__main__':
