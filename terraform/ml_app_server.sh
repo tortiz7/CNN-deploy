@@ -22,5 +22,5 @@ pip install -r requirements.txt
 # sudo systemctl restart redis
 
 #start gunicorn
-gunicorn --config gunicorn.conf.py app:app
+gunicorn --config gunicorn_config.py app:app
 
