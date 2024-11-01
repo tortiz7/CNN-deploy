@@ -70,26 +70,29 @@ history = model.fit(
     callbacks=callbacks
 )
 
-# Fine-tune the pre-trained CNN model with data
-# model.fit(
-#    train_generator,
-#    steps_per_epoch=train_generator.samples // train_generator.batch_size,
-#    validation_data=val_generator,
-#    validation_steps=val_generator.samples // val_generator.batch_size,
-#    epochs=5
-#)
-# Save the model after training
-# model.save('pneumonia_model.h5')
-
 model.save('/home/ubuntu/models/pneumonia_model.keras')  # Using .keras format instead of .h5
 # Load the trained model for inference
 from tensorflow.keras.models import load_model
-# Test prediction
-test_image_path = '/home/ubuntu/chest_xray/test/PNEUMONIA/person10_virus_35.jpeg'  # Update with actual image path
-img = tf.keras.preprocessing.image.load_img(test_image_path, target_size=(224, 224))
-img_array = tf.keras.preprocessing.image.img_to_array(img) / 255.
-img_array = np.expand_dims(img_array, axis=0)
-prediction = model.predict(img_array)
-confidence = float(prediction[0][0])
-result = "Pneumonia" if confidence > 0.5 else "Normal"
-print(f"Prediction: {result} (confidence: {confidence:.2%})")
+
+import os
+# test the model all images in /content/chest_xray/test and get the predictions of each image
+# Get the list of image files in the test directory
+test_dir = '/content/chest_xray/test'
+for root, dirs, files in os.walk(test_dir):
+  for file in files:
+    if file.endswith(('.jpg', '.jpeg', '.png')):
+      test_image_path = os.path.join(root, file)
+      # Load and preprocess the image
+      img = tf.keras.preprocessing.image.load_img(test_image_path, target_size=(224, 224))
+      img_array = tf.keras.preprocessing.image.img_to_array(img) / 255.
+      img_array = np.expand_dims(img_array, axis=0)
+
+      # Make the prediction
+      prediction = model.predict(img_array)
+      confidence = float(prediction[0][0])
+      result = "Pneumonia" if confidence > 0.5 else "Normal"
+
+      # Print the results
+      print(f"Image: {test_image_path}")
+      print(f"Prediction: {result} (confidence: {confidence:.2%})")
+      print("---")
