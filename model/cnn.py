@@ -7,8 +7,6 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 # Download ResNet50(pre-trained CNN on ImageNet, great for image classification)
 from tensorflow.keras.applications import ResNet50
 base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-# Download dataset from S3 
-# aws s3 cp s3://x-raysbucket/chest_xray/ /home/ubuntu/chest_xray --recursive
 
 # Add classification layers
 x = base_model.output
@@ -83,7 +81,7 @@ history = model.fit(
 # Save the model after training
 # model.save('pneumonia_model.h5')
 
-model.save('pneumonia_model.keras')  # Using .keras format instead of .h5
+model.save('/home/ubuntu/models/pneumonia_model.keras')  # Using .keras format instead of .h5
 # Load the trained model for inference
 from tensorflow.keras.models import load_model
 # Test prediction

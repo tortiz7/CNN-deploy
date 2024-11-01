@@ -224,19 +224,45 @@ resource "aws_instance" "ml_nginx_server" {
   vpc_security_group_ids      = [aws_security_group.ml_frontend_security_group.id]
   key_name                    = var.key_name
   associate_public_ip_address = true
+  depends_on = [aws_internet_gateway.ml_internet_gateway]
+  user_data = <<-EOF
+    #!/bin/bash
+    # Redirect stdout and stderr to a log file
+    exec > /var/log/user-data.log 2>&1
+    apt-get update -y
+    apt-get install -y python3-pip
+    apt-get install -y nginx
+  EOF
 
   tags = {
     Name = "ml_nginx_server"
   }
 }
 
-resource "aws_instance" "ml_ui_server" {
+# EC2 Instances
+resource "aws_instance" "ml_monitoring_server" {
   ami                         = var.ec2_ami
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.ml_public_subnet.id
   vpc_security_group_ids      = [aws_security_group.ml_frontend_security_group.id]
   key_name                    = var.key_name
   associate_public_ip_address = true
+  depends_on = [aws_internet_gateway.ml_internet_gateway]
+  user_data = "${file("monitoring_server.sh")}"
+
+  tags = {
+    Name = "ml_monitoring_server"
+  }
+}
+
+resource "aws_instance" "ml_ui_server" {
+  ami                         = var.ec2_ami
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.ml_private_subnet_app.id
+  vpc_security_group_ids      = [aws_security_group.ml_backend_security_group.id]
+  key_name                    = var.key_name
+  user_data = "${file("ml_frontend_server.sh")}"
+  depends_on = [aws_nat_gateway.ml_nat_gateway]
 
   tags = {
     Name = "ml_ui_server"
@@ -249,6 +275,8 @@ resource "aws_instance" "ml_app_server" {
   subnet_id              = aws_subnet.ml_private_subnet_app.id
   vpc_security_group_ids = [aws_security_group.ml_backend_security_group.id]
   key_name               = var.key_name
+  user_data = "${file("ml_app_server.sh")}"
+  depends_on = [aws_nat_gateway.ml_nat_gateway]
 
   tags = {
     Name = "ml_app_server"
@@ -261,6 +289,14 @@ resource "aws_instance" "ml_training_server" {
   subnet_id              = aws_subnet.ml_private_subnet_training.id
   vpc_security_group_ids = [aws_security_group.ml_backend_security_group.id]
   key_name               = var.key_name
+  user_data = "${file("ml_model_server.sh")}"
+  depends_on = [aws_nat_gateway.ml_nat_gateway]
+
+  root_block_device {
+    volume_type           = "gp2"  # Standard General Purpose SSD
+    volume_size           = 20     
+    delete_on_termination = true
+  }
 
   tags = {
     Name = "ml_training_server"
@@ -271,10 +307,22 @@ output "nginx_ip" {
   value = aws_instance.ml_nginx_server.public_ip
 }
 
+output "monitoring_ip" {
+  value = aws_instance.ml_monitoring_server.private_ip
+}
+
 output "ui_server_ip" {
-  value = aws_instance.ml_ui_server.public_ip
+  value = aws_instance.ml_ui_server.private_ip
 }
 
 output "nat_gateway_ip" {
   value = aws_eip.nat_eip.public_ip
+}
+
+output "ml_app_server_ip" {
+  value = aws_instance.ml_app_server.private_ip
+}
+
+output "ml_model_server_ip" {
+  value = aws_instance.ml_training_server.private_ip
 }

@@ -1,101 +1,154 @@
-# Pneumonia Detection ML System
+Kura Labs AI Workload 1
+# Pneumonia Detection Application
 
-A distributed system for training and serving a pneumonia detection model using chest X-rays. The system consists of three main components: ML training server, FLask API/Redis server, and a Flask/HTMX frontend.
+## Overview
 
-## Infrastructure Setup
-The project uses Terraform to provision AWS resources:
-* 1 VPC
-* 2 Availability Zones (us-east-1a for API/Frontend, us-east-1b for ML training)
-* 3 Subnets (1 public for frontend, 2 private for API and ML)
-* 3 EC2 Instances:
-  - t3.micro (Frontend/HTMX in public subnet)
-  - t3.medium (API/Redis in private subnet)
-  - p3.2xlarge (ML training in private subnet)
-* 2 Route Tables (public and private)
-* Internet Gateway
-* NAT Gateway
-* Elastic IP
-* Security Groups for each service
+Welcome! You are an MLOps engineer working in a specialized team at Mount Sinai Hospital. Your team has developed a neural network application that allows doctors to upload x-ray images and receive a prediction on whether or not the x-ray indicates pneumonia. This application currently displays prediction results along with the percent accuracy for each diagnosis. The infrastructure, including backend, frontend, and monitoring, was manually configured to allow these components to interact seamlessly, and they are connected as shown in [this repo](https://github.com/elmorenox/CNN_deploy/blob/main/README.md). 
 
-For detailed Terraform configuration, see the terraform directory.
+Initially, the application’s web server was accessible on a public subnet, where the UI was served on `public_ip:5001`. However, for enhanced security, there’s now a requirement to move the application to a private subnet and use Nginx on the public subnet to handle requests and serve the UI from `public_ip:80`. 
 
-## Server Setup Instructions
+Additionally, concerns have been raised about model performance, as predictions show a tendency to classify everything as pneumonia. Your team is now tasked with creating the infrastructure and connections for this application, sending accurate metrics to Prometheus and Grafana, and retraining the model to reduce bias in predictions and align with the updated system architecture shown below. 
 
-THE SCRIPTS BELOW IDEALLY CAN BE RUN AS PART OF THE TF DEPLOY BUT THEY WILL NOT RUN TO COMPLETION IN THEIR CURRENT STATE. USE THEM AS GUIDES FOR MANUAL SET UP.
-MANUAL STEPS ARE WRITTEN IN THE COMMENTS
+![Screenshot 2024-10-26 130236](https://github.com/user-attachments/assets/33328621-4d3b-4234-aafa-2624e5f66ced)
 
-### ML Training Server Setup
+Please follow the steps below.
 
-```bash
-# System packages
-sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y python3-pip python3-venv awscli wget git build-essential
+## Steps
 
-# NVIDIA/CUDA setup
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt-get update
-sudo apt-get -y install cuda-drivers cuda
+A. **Set up Development Environment**
+   - Spin up a `t3.medium` instance in your AWS account’s VPC.
+   - Install **Terraform** (**VSCode** is optional but recommended).
+   
+B. **Clone and Prepare Repository**
+   - Clone the project repository and upload it to your own GitHub account.
+   - Update any file references to the repository URL to point to your new GitHub repository.
+   
+C. **Create Infrstructure**
+   - Terraform apply the configurations for your application enviornment. 
+   
+D. **Configure**
+   - In order to make sure all connections are made in the backend and frontend, please follow the steps below:
 
-# Environment setup
-cd ~/CNN_deploy
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+### Key Pair Creation
+1. **Create a key pair** called `mykey` in your AWS account. This will allow you to SSH into the instances in the private subnets for configurations.
+   - **Question:** Why is that necessary?
 
-# Configure inference.py with Redis server private IP
-# Set REDIS_HOST in inference.py
-```
+### Monitoring Server Setup
+2. **Connect to the Monitoring Server**.
+   - Navigate to `/opt/prometheus/prometheus.yml`.
+   - Under `scrape_configs`, add the following:
+     ```yaml
+     - job_name: 'node_exporter'
+       static_configs:
+     - targets: ['${ML_TRAINING_SERVER_IP}:9100', '${ML_TRAINING_SERVER_IP}:8000']
+     ```
+   - In terminal, execute:
+     ```
+     sudo systemctl restart prometheus
+     ```
+Make sure Prometheus and Grafana are configured correctly to grab information from the node exporter on the Application Server. 
 
-### API/Redis Server Setup
+### Nginx Server Configuration
+3. **Connect to the Nginx Server**.
+   - Navigate to `/etc/nginx/sites-enabled/default`.
+   - After the server listen configuration, add the following (replace `{UI_SERVER_IP}` with UI server IP):
+     ```nginx
+     location / {
+         proxy_pass http://${UI_SERVER_IP}:5001;
+         proxy_set_header Host $host;
+         proxy_set_header X-Real-IP $remote_addr;
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Forwarded-Proto $scheme;
+     }
+     ```
+   - In terminal, execute:
+     ```
+     sudo systemctl restart nginx
+     ```
+Make sure that traffic is being routed by Nginx correctly. 
 
-```bash
-# System packages
-sudo apt-get update
-sudo apt-get install redis-server python3-pip python3-venv
+### Application Server Setup
+4. **Exit the Monitoring Server and SSH into the Application Server**.
+   - Execute:
+     ```
+     sudo reboot
+     ```
+   - After connecting again, in `/etc/redis/redis.conf`, modify these lines:
+     ```
+     bind 0.0.0.0
+     protected-mode no
+     ```
+   - Run the following commands in the terminal:
+     ```
+     sudo systemctl restart redis
+     ```
 
-# Redis Configuration
-sudo vi /etc/redis/redis.conf
+### ML Training Server Configuration
+5. **Exit the Application Server and SSH into the ML Training Server**.
+   - Navigate to `CNN_deploy/model/inference.py` and put the private IP of the Application Server where it says `backendapi_private_ip`.
+     - **Question:** What connection are we making here and why?
+   - In the terminal, execute the following commands:
+     ```
+     sudo reboot
+     #### connect again ####
+     cd CNN_deploy/model
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install --upgrade pip
+     pip install -r requirements.txt
+     python3 cnn.py
+     python3 inference.py
+     ```
+   - Move the model (`best_model.keras`) to the application server by adding your `mykey.pem` and using SCP:
+     ```
+     scp -i ~/.ssh/mykey.pem /home/ubuntu/CNN_deploy/model/best_model.keras ubuntu@10.0.2.162:/home/ubuntu/CNN_deploy/pneumonia_api
+     ```
+Make sure that the saved model (post-training) is accessible in the Application Server for Redis.
 
-# Add/modify these lines:
-# bind 0.0.0.0
-# protected-mode no
+### Application Server Final Setup
+6. **Exit the ML Training server and SSH back into the Application Server**.
+   - Execute:
+     ```
+     cd ~/CNN_deploy/pneumonia_api
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install -r requirements.txt
+     gunicorn --bind 0.0.0.0:5000 app:app
+     ```
+Make sure that the application api is up. 
 
-sudo systemctl restart redis
+### Frontend Server Configuration
+7. **Exit the ML Training Server and SSH into the UI Server**.
+   - Navigate to `CNN_deploy/pneumonia_web/app.py` and replace `API_URL` with the private IP of the Application Server.
+   - In the terminal, execute:
+     ```
+     cd ~/CNN_deploy/pneumonia_web
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install -r requirements.txt
+     gunicorn --config gunicorn_config.py app:app
+     ```
+Make sure that the frontend api is up.
+   
+E. **Monitor and Fix Model**
+   - Update the model to accurately detect pneumonia in scans. When you update your model, you have to do steps 5 and 6 again. 
 
-# Application setup
-cd ~/CNN_deploy/pneumonia_api
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+---
 
-# Start API server
-gunicorn --config gunicorn_config.py app:app
-```
+## Documentation
 
-### Frontend Server Setup
+### Purpose
+What is the purpose of this project?
 
-```bash
-# System packages
-sudo apt-get update
-sudo apt-get install python3-pip python3-venv
+### Steps
+The application is designed to allow x-ray images to be uploaded via the frontend, processed by a neural network model in the backend, the results stored in Redis to be displayed on the UI. Explain the essential steps taken in order to make sure that the model is accurate and visible on the frontend to the user. Why did you have the steps you did in the order you did?
 
-# Application setup
-cd ~/CNN_deploy/pneumonia_web
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+### Troubleshooting
+Explain the issues you ran into and how you resolved them.
 
-# Configure API endpoint in app.py
-# Set API_URL to private IP of API server
+### Optimization
+Explain how would you optimize this deployment?
 
-# Start frontend server
-gunicorn --config gunicorn_config.py app:app
-```
-
-## Key Files
-
-- `cnn.py`: Model training script
-- `inference.py`: Runs predictions and stores in Redis
-- `pneumonia_api/app.py`: Flask API endpoint
-- `pneumonia_web/app.py`: Frontend Flask application
+### Conclusion
+Share what you took away from this project. 
+--- 

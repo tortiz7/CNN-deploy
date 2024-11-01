@@ -16,7 +16,7 @@ r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
 # Load model at startup
 try:
-    model = load_model('pneumonia_model.keras')
+    model = load_model('best_model.keras')
     logger.info("Model loaded successfully")
 except Exception as e:
     logger.error(f"Error loading model: {str(e)}")
