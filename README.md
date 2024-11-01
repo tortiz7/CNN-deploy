@@ -131,7 +131,7 @@ Make sure that the application api is up.
 Make sure that the frontend api is up.
    
 E. **Monitor and Fix Model**
-   - Update the model to accurately detect pneumonia in scans. When you update your model, you have to do steps 5 and 6 again. 
+   - Update the model to accurately detect pneumonia in scans. When you update your model (cnn.py), you have to do steps 5 and 6 again. 
 
 ---
 
