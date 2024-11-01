@@ -3,13 +3,13 @@ Kura Labs AI Workload 1
 
 ## Overview
 
-Welcome! You are an MLOps engineer working in a specialized team at Mount Sinai Hospital. Your team has developed a neural network application that allows doctors to upload x-ray images and receive a prediction on whether or not the x-ray indicates pneumonia. This application currently displays prediction results along with the percent accuracy for each diagnosis. The infrastructure, including backend, frontend, and monitoring, was manually configured to allow these components to interact seamlessly, and they are connected as shown in [this repo](https://github.com/elmorenox/CNN_deploy/blob/main/README.md). 
+Welcome! You are an MLOps engineer working in a specialized team at Mount Sinai Hospital. Your team has developed a neural network application that allows doctors to upload X-ray images and receive a prediction on whether or not the X-ray indicates pneumonia. This application currently displays prediction results along with the percent accuracy for each diagnosis. The infrastructure, including backend, frontend, and monitoring, was manually configured to allow these components to interact seamlessly, and they are connected as shown in [this repo](https://github.com/elmorenox/CNN_deploy/blob/main/README.md). 
 
 Initially, the application’s web server was accessible on a public subnet, where the UI was served on `public_ip:5001`. However, for enhanced security, there’s now a requirement to move the application to a private subnet and use Nginx on the public subnet to handle requests and serve the UI from `public_ip:80`. 
 
 Additionally, concerns have been raised about model performance, as predictions show a tendency to classify everything as pneumonia. Your team is now tasked with creating the infrastructure and connections for this application, sending accurate metrics to Prometheus and Grafana, and retraining the model to reduce bias in predictions and align with the updated system architecture shown below. 
 
-![Screenshot 2024-10-26 130236](https://github.com/user-attachments/assets/33328621-4d3b-4234-aafa-2624e5f66ced)
+![Screenshot 2024-10-26 130236](https://github.com/user-attachments/assets/43d32683-b65d-471f-a58f-c87a33c8529b)
 
 Please follow the steps below.
 
@@ -23,8 +23,8 @@ B. **Clone and Prepare Repository**
    - Clone the project repository and upload it to your own GitHub account.
    - Update any file references to the repository URL to point to your new GitHub repository.
    
-C. **Create Infrstructure**
-   - Terraform apply the configurations for your application enviornment. 
+C. **Create Infrastructure**
+   - Terraform apply the configurations for your application environment. 
    
 D. **Configure**
    - In order to make sure all connections are made in the backend and frontend, please follow the steps below:
@@ -42,7 +42,7 @@ D. **Configure**
        static_configs:
      - targets: ['${ML_TRAINING_SERVER_IP}:9100', '${ML_TRAINING_SERVER_IP}:8000']
      ```
-   - In terminal, execute:
+   - In the terminal, execute:
      ```
      sudo systemctl restart prometheus
      ```
@@ -61,11 +61,11 @@ Make sure Prometheus and Grafana are configured correctly to grab information fr
          proxy_set_header X-Forwarded-Proto $scheme;
      }
      ```
-   - In terminal, execute:
+   - In the terminal, execute:
      ```
      sudo systemctl restart nginx
      ```
-Make sure that traffic is being routed by Nginx correctly. 
+Make sure that Nginx routes traffic correctly. 
 
 ### Application Server Setup
 4. **Exit the Monitoring Server and SSH into the Application Server**.
@@ -136,6 +136,7 @@ E. **Monitor and Fix Model**
 ---
 
 ## Documentation
+You are responsible for creating a README.md in your repo with the following:
 
 ### Purpose
 What is the purpose of this project?
@@ -151,4 +152,5 @@ Explain how would you optimize this deployment?
 
 ### Conclusion
 Share what you took away from this project. 
+
 --- 
