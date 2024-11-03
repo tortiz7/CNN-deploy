@@ -43,7 +43,7 @@ sudo chown -R ubuntu:ubuntu /home/ubuntu/chest_xray
 
 # Clone repository
 cd /home/ubuntu
-git clone https://github.com/tortiz7/Pnu-AI.git /home/ubuntu/CNN_deploy
+git clone https://github.com/tortiz7/CNN_deploy.git /home/ubuntu/CNN_deploy
 
 # Set permissions on the repo
 sudo chown -R ubuntu:ubuntu /home/ubuntu/CNN_deploy
