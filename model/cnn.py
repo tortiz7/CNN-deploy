@@ -4,10 +4,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Flatten
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
-!mkdir -p /content/chest_xray/
-
-# Download dataset from S3
-!aws s3 cp s3://x-raysbucket/chest_xray/ /content/chest_xray/ --recursive --no-sign-request
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 # Download ResNet50(pre-trained CNN on ImageNet, great for image classification)
 from tensorflow.keras.applications import ResNet50
@@ -63,78 +60,95 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,
-    rotation_range=15,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
+    rotation_range=32,
+    width_shift_range=0.3,
+    height_shift_range=0.3,
     horizontal_flip=True,
     vertical_flip=False,
     #ebrightness_range=[0.1, 0.3],
     zoom_range=0.2,
     #shear_range=0.2,
-    fill_mode='nearest'
+    fill_mode='nearest',
+    dtype=np.float32
 )
-val_datagen = ImageDataGenerator(rescale=1./255)
+
+val_datagen = ImageDataGenerator(
+    rescale=1.0 / 255,
+    dtype=np.float32,
+)
+
+test_datagen = ImageDataGenerator(
+    rescale=1.0 / 255,
+    dtype=np.float32,
+)
+
+
 test_datagen = ImageDataGenerator(rescale=1./255)
 
 from pickle import TRUE
 import types
 
-# # Define the set_length function
-# def set_length(generator):
-#     # Get the total number of samples
-#     total_samples = len(generator.filenames)
-#     # Calculate the number of batches per epoch
-#     steps_per_epoch = total_samples // generator.batch_size
-#     # Set the `len` attribute of the generator
-#     def __len__(self):
-#         return steps_per_epoch
-#     generator.__len__ = types.MethodType(__len__, generator)
-#     return generator
-
 # Load the data
 train_generator = train_datagen.flow_from_directory(
-    '/content/chest_xray/train',
+    '/home/ubuntu/chest_xray/train',
     target_size=(224, 224),
     batch_size=16,
     class_mode='binary',
     shuffle=True
 )
 val_generator = val_datagen.flow_from_directory(
-    '/content/chest_xray/val',
+    '/home/ubuntu/chest_xray/val',
     target_size=(224, 224),
     batch_size=32,
     class_mode='binary',
     shuffle=False
 )
 test_generator = test_datagen.flow_from_directory(
-    '/content/chest_xray/test',
+    '/home/ubuntu/chest_xray/test',
     target_size=(224, 224),
     batch_size=32,
     class_mode='binary',
     shuffle=False
 )
 
-# # Apply set_length to train and validation generators
-# train_generator = set_length(train_generator)
-# val_generator = set_length(val_generator)
-
-from collections import Counter
 from sklearn.utils.class_weight import compute_class_weight
 
-# # Assuming you have your training generator ready
-# class_counts = Counter(train_generator.classes)
-# print(class_counts)
+# Ensure 'train_generator' has been initialized before this step
+train_labels = train_generator.classes  # Get the class labels from the generator
 
-# class_weights = {0: 1.0, 1: 1.5}
+# Calculate class weights
+class_weights = compute_class_weight(
+    class_weight='balanced',
+    classes=np.unique(train_labels),
+    y=train_labels
+)
 
-# # Check if class weights are set correctly
-# print("Class weights:", Class_weights)
+class_weights_dict = dict(enumerate(class_weights))
+print("Class Weights:", class_weights_dict)
 
-# classes = np.unique(train_generator.classes)
-# class_weights = compute_class_weight('balanced', classes=classes, y=train_generator.classes)
-# class_weights = dict(enumerate(class_weights))
+# Create custom generator wrapper to match expected structure
+def generator_wrapper(generator,):
+    while True:
+        x, y = next(generator)  # Use next() directly on the generator
+        yield (x, y, np.ones(y.shape))
 
-# print(class_weights)
+
+from collections import Counter
+
+# Wrap your generators
+train_generator_wrapped = generator_wrapper(train_generator)
+val_generator_wrapped = generator_wrapper(val_generator)
+
+def generator_wrapper_with_sample_weights(generator, class_weights):
+    while True:
+        x, y = next(generator)
+        # Apply class weights based on the labels in y
+        sample_weights = np.array([class_weights[int(label)] for label in y])
+        yield (x, y, sample_weights)  # Return sample weights in the third position
+
+train_generator_wrapped = generator_wrapper_with_sample_weights(train_generator, class_weights_dict)
+val_generator_wrapped = generator_wrapper_with_sample_weights(val_generator, class_weights_dict)
+
 
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
@@ -145,47 +159,22 @@ callbacks = [
     #ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, min_lr=1e-7)
 ]
 
-from sklearn.utils.class_weight import compute_class_weight
+val_generator.batch_size = min(val_generator.batch_size, val_generator.samples)
 
-
-class_weights = {0: 0.8, 1: 1.6}
-
-# classes = np.unique(train_generator.classes)
-# class_weights = compute_class_weight('balanced', classes=classes, y=train_generator.classes)
-# class_weights = dict(enumerate(class_weights))
+val_steps = max(1, val_generator.samples // val_generator.batch_size) 
 
 # Train the model
 history = model.fit(
-    train_generator,
+    train_generator_wrapped,
     steps_per_epoch=train_generator.samples // train_generator.batch_size,
-    epochs=15,  # Adjust as needed
-    validation_data=val_generator,
-    validation_steps=val_generator.samples // val_generator.batch_size,
-    class_weight=class_weights,  # Add class_weight here
+    validation_data=val_generator_wrapped,
+    validation_steps=val_steps,
+   # class_weight=class_weights,  # Add class_weight here
+    epochs=20,
+    verbose=1,
     callbacks=callbacks
+
 )
-
-import matplotlib.pyplot as plt
-
-# Plot training & validation loss
-plt.figure(figsize=(10, 5))
-plt.plot(history.history['loss'], 'go-', label="Training Loss")
-plt.plot(history.history['val_loss'], 'ro-', label="Validation Loss")
-plt.title('Model Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.legend()
-plt.show()
-
-# Plot training & validation accuracy
-plt.figure(figsize=(10, 5))
-plt.plot(history.history['accuracy'], 'go-', label="Training Accuracy")
-plt.plot(history.history['val_accuracy'], 'ro-', label="Validation Accuracy")
-plt.title('Model Accuracy')
-plt.xlabel('Epochs')
-plt.ylabel('Accuracy')
-plt.legend()
-plt.show()
 
 model.save('pneumonia_model.keras')
 
@@ -214,6 +203,28 @@ for root, dirs, files in os.walk(test_dir):
       print(f"Image: {test_image_path}")
       print(f"Prediction: {result} (confidence: {confidence:.2%})")
       print("---")
+
+import matplotlib.pyplot as plt
+
+# Plot training & validation loss
+plt.figure(figsize=(10, 5))
+plt.plot(history.history['loss'], 'go-', label="Training Loss")
+plt.plot(history.history['val_loss'], 'ro-', label="Validation Loss")
+plt.title('Model Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+# Plot training & validation accuracy
+plt.figure(figsize=(10, 5))
+plt.plot(history.history['accuracy'], 'go-', label="Training Accuracy")
+plt.plot(history.history['val_accuracy'], 'ro-', label="Validation Accuracy")
+plt.title('Model Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
 
 # Plot training & validation accuracy
 plt.figure(figsize=(10, 5))
