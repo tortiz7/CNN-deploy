@@ -1,4 +1,6 @@
 provider "aws" {
+  access_key = var.access_key          
+  secret_key = var.secret_key 
   region = "us-east-1"
 }
 
@@ -133,6 +135,22 @@ resource "aws_security_group" "ml_frontend_security_group" {
   }
 
   ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Prometheus"
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Grafana"
+  }
+
+  ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -202,6 +220,22 @@ resource "aws_security_group" "ml_backend_security_group" {
     to_port   = 22
     protocol  = "tcp"
     self      = true  # This allows instances in this security group to communicate
+  }
+
+  ingress {
+    from_port = 9100
+    to_port   = 9100
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Node Exporter"
+  }
+
+  ingress {
+    from_port = 5001
+    to_port   = 5001
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Gunicorn"
   }
 
   egress {
@@ -293,8 +327,8 @@ resource "aws_instance" "ml_training_server" {
   depends_on = [aws_nat_gateway.ml_nat_gateway]
 
   root_block_device {
-    volume_type           = "gp2"  # Standard General Purpose SSD
-    volume_size           = 20     
+    volume_type           = "gp3"  # Standard General Purpose SSD
+    volume_size           = 35     
     delete_on_termination = true
   }
 

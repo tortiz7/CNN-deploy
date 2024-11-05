@@ -28,3 +28,15 @@ variable "key_name" {
   description = "Key pair name for ML EC2 instances"
   default     = "mykey"
 }
+
+ variable access_key{
+    type = string
+    sensitive = true
+
+ }                                                    
+
+ variable secret_key{
+    type = string
+    sensitive = true
+
+ }    
