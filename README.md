@@ -56,41 +56,43 @@ This project implements a sophisticated medical imaging analysis system for Moun
 
 **1. X-Ray Image Upload (Doctor Interaction)**
 
-	• Step 1: The doctor accesses the pneumonia detection application through a web interface hosted on the frontend server in the public subnet.
-	• Step 2: The doctor uploads an X-ray image via this interface, which is implemented using Flask and HTMX. This request is sent to the Nginx reverse proxy.
+Step 1: The doctor accesses the pneumonia detection application through a web interface hosted on the frontend server in the public subnet.
+Step 2: The doctor uploads an X-ray image via this interface, which is implemented using Flask and HTMX. This request is sent to the Nginx reverse proxy.
 
- 
 **2. Routing Through Nginx (Frontend Server)**
 
-	• Step 3: The uploaded image request reaches the Nginx server on the frontend, which acts as a reverse proxy. Nginx forwards the request to the backend Application server in the private subnet on port 5001.
+Step 3: The uploaded image request reaches the Nginx server on the frontend, which acts as a reverse proxy. Nginx forwards the request to the backend Application server in the private subnet on port 5001.
 
 **3. Receiving the Image (Backend Server)**
-	• Step 4: The backend server receives the image from Nginx and temporarily stores it in a dedicated directory. This server, which runs Flask and Gunicorn, handles the incoming request and prepares the data for processing.
-	• Step 5: The backend server saves metadata and the image path in Redis. Redis acts as a NoSQL database to temporarily store the uploaded image information and track the request, enabling the system to manage multiple simultaneous requests efficiently.
+
+Step 4: The backend server receives the image from Nginx and temporarily stores it in a dedicated directory. This server, which runs Flask and Gunicorn, handles the incoming request and prepares the data for processing.
+Step 5: The backend server saves metadata and the image path in Redis. Redis acts as a NoSQL database to temporarily store the uploaded image information and track the request, enabling the system to manage multiple simultaneous requests efficiently.
 
 **4. Processing the Image with the ML Model (ML Training Server)**
-	• Step 6: The backend server forwards the saved image path and necessary metadata to the ML Training server in the private subnet, which hosts the pneumonia detection ResNet convolutional neural network (CNN) model.
-	• Step 7: The ML server uses NVIDIA CUDA for GPU-accelerated processing, speeding up the analysis of the X-ray image.
-	• Step 8: The ResNet model processes the image and makes a binary prediction: pneumonia detected (positive) or not detected (negative). It also provides a confidence score for the prediction, indicating the model’s certainty.
+
+Step 6: The backend server forwards the saved image path and necessary metadata to the ML Training server in the private subnet, which hosts the pneumonia detection ResNet convolutional neural network (CNN) model.
+Step 7: The ML server uses NVIDIA CUDA for GPU-accelerated processing, speeding up the analysis of the X-ray image.
+Step 8: The ResNet model processes the image and makes a binary prediction: pneumonia detected (positive) or not detected (negative). It also provides a confidence score for the prediction, indicating the model’s certainty.
 
 **6. Storing and Managing Prediction Results**
 
-	• Step 9: The ML Training server sends the prediction results, including the label (positive/negative) and confidence score, back to the backend server.
-	• Step 10: The backend server saves this prediction data in Redis to ensure fast retrieval. Redis enables the backend server to fetch and display the results promptly when the doctor checks the results page.
+Step 9: The ML Training server sends the prediction results, including the label (positive/negative) and confidence score, back to the backend server.
+Step 10: The backend server saves this prediction data in Redis to ensure fast retrieval. Redis enables the backend server to fetch and display the results promptly when the doctor checks the results page.
 
 **7. Displaying Results on the Frontend**
 
-	• Step 11: Once the prediction is stored in Redis, the backend server notifies the frontend interface that the prediction is ready.
-	• Step 12: The doctor can view the prediction results by refreshing the page or navigating to a dedicated results page on the frontend interface.
-	• Step 13: The frontend retrieves the prediction result from the backend server, which fetches it from Redis, and displays it on the webpage. This page includes details such as the X-ray file name, prediction label (e.g., "Pneumonia Detected"), and the confidence score.
+Step 11: Once the prediction is stored in Redis, the backend server notifies the frontend interface that the prediction is ready.
+Step 12: The doctor can view the prediction results by refreshing the page or navigating to a dedicated results page on the frontend interface.
+Step 13: The frontend retrieves the prediction result from the backend server, which fetches it from Redis, and displays it on the webpage. This page includes details such as the X-ray file name, prediction label (e.g., "Pneumonia Detected"), and the confidence score.
 
 **8. Monitoring the System (Monitoring Server)**
 
-	• Step 14: Prometheus on the monitoring server continuously scrapes metrics from the backend, ML Training server, and other components. These metrics include system performance, memory usage, CPU load, and the health of key processes like Gunicorn, Redis, and Nginx.
-	• Step 15: Prometheus provides these metrics to Grafana, where they are visualized through custom dashboards. Grafana alerts can notify administrators of any potential issues in real time, such as high load on the ML Training server or backend server failures.
+Step 14: Prometheus on the monitoring server continuously scrapes metrics from the backend, ML Training server, and other components. These metrics include system performance, memory usage, CPU load, and the health of key processes like Gunicorn, Redis, and Nginx.
+Step 15: Prometheus provides these metrics to Grafana, where they are visualized through custom dashboards. Grafana alerts can notify administrators of any potential issues in real time, such as high load on the ML Training server or backend server failures.
 
 **9. Data Storage and Retrieval**
-	• Step 16: For future use or reference, the original X-ray images can be stored in Amazon S3, if desired, enabling the application to archive and retrieve previous cases. This storage integration is optional but can aid in building a dataset for further training and improving the model’s accuracy.
+
+Step 16: The original X-ray images are stored in Amazon S3, enabling the application to archive and retrieve previous cases. This storage integration is optional but can aid in building a dataset for further training and improving the model’s accuracy.
 
 ## Troubleshooting
 
