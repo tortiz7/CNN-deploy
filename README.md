@@ -202,5 +202,16 @@ the `generator_wrapper` adds a third, placeholder element of one's in the shape 
 
 ### Optimizations
 
+1) **Model Fine-Tuning:** Regularly retrain the model with new data and refine class weights to adapt to any shifts in pneumonia vs. normal case frequency, ensuring accuracy over time.
+
+2) **Load Balancing:** Implement an Application Load Balancer to distribute requests evenly if traffic volume increases, maintaining response times and model availability. This would allow us to extend the ML predictions for Pneumonia scans to other hospitals within the Mount Sinai network, with the ALB efficiently distrubting incoming requests so every doctor can maintain availability to the model.
+
+3) **Auto-scaling:** Configure auto-scaling for the ML and Application servers, allowing resources to scale based on user demand, optimizing cost and performance. Were we to implement the expansion plan spoken of above, the ML and Application servers would need to be in autoscaling groups to ensure they can always meet demand.
+
+4) **CloudWatch Implementation**: Switching from Prometheus and Grafana to the AWS managed service CloudWatch can lead to quicker, automated metric gatering and analysis on our ML and Application servers, and can lead to less downtime should the servers encountering an issue or otherwise be rendered offline. Finetuned alarms would ensure that we are always aware of the health of our servers.
+
+### Documentation
+
+
 
 
