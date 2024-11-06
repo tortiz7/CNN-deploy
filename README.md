@@ -94,7 +94,7 @@ Step 13: The frontend server retrieves the prediction result from the backend se
 
 **8. Monitoring the System (Monitoring Server)**
 
-Step 14: Prometheus on the monitoring server continuously scrapes metrics from the backend, ML Training server, and other components. These metrics include system performance, memory usage, CPU load, and the health of key processes like Gunicorn, Redis, and Nginx.
+Step 14: Prometheus on the monitoring server continuously scrapes metrics from the backend ML Training server, and other components. These metrics include system performance, memory usage, CPU load, and the health of our ML model, the engine of our whole workload. 
 
 Step 15: Prometheus provides these metrics to Grafana, where they are visualized through custom dashboards. Grafana alerts can notify engineers of any potential issues in real time, such as high load on the ML Training server or backend server failures.
 
