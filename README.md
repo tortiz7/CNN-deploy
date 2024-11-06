@@ -11,7 +11,7 @@ Hello! This Workload implements a sophisticated medical imaging analysis system 
 2) NGINX reverse proxy configuration
 3) Handles SSL termination
 4) Routes traffic to UI server on port 5001
-5) Security group: ports 22, 80, 443, 5001, 3000, 9090, 9100
+5) Security group: ports 22 (SSH), 80 (HTTP), 443 (HTTPS)
 
 **UI Server (Private Subnet)** 
 
@@ -19,7 +19,7 @@ Hello! This Workload implements a sophisticated medical imaging analysis system 
 2) Flask web application
 3) Gunicorn WSGI server
 4) Handles file uploads and result display
-5) Security group: ports 22, 5001, 6379, 8000, 9100
+5) Security group: ports 22 (SSH), 5001 (Gunicorn), 6379 (Redis)
 
 **Application Server (Private Subnet)**
 
@@ -27,7 +27,7 @@ Hello! This Workload implements a sophisticated medical imaging analysis system 
 2) Redis cache implementation
 3) API endpoint processing
 4) Model serving infrastructure
-5) Security group: ports 22, 5000, 5001, 6379, 8000, 9100
+5) Security group: ports 22 (22), 5001 (Gunicorn), 6379 (Redis), 9100 (Node Exporter)
 
 **ML Training Server (Private Subnet)**
 
@@ -35,14 +35,14 @@ Hello! This Workload implements a sophisticated medical imaging analysis system 
 2) TensorFlow training environment
 3) Model development and training pipeline
 4) Node exporter for metrics
-5) Security group: ports 22, 5000, 5001, 6379, 8000, 9100
+5) Security group: ports 22 (22), 5001 (Gunicorn), 6379 (Redis), 9100 (Node Exporter)
 
 **Monitoring Server (Public Subnet)**
 
 1) t3.micro instance
 2) Prometheus metrics collection
 3) Grafana dashboards
-4) Security group: ports 22, 80, 443, 5001, 3000, 9090, 9100
+4) Security group: ports 22, 3000 (Grafana), 9090 (Prometheus)
 
 ### Network Architecture
 
@@ -51,6 +51,62 @@ Hello! This Workload implements a sophisticated medical imaging analysis system 
 3) Security groups with principle of least privilege
 4) Private subnet CIDR: 10.0.2.0/24
 5) Public subnet CIDR: 10.0.1.0/24
+
+## Workload Steps
+
+### 1. Key Pair Creation
+
+**Why:** The key pair allows secure SSH access to instances in private subnets, which do not have direct public access.
+
+**Necessity:** SSH access to instances within private subnets is required for configuration and troubleshooting, particularly for the ML Training and Application Servers. Without this, accessing these servers directly would be impossible.
+
+### 2. Monitoring Server Setup
+
+**Why:** Configuring Prometheus and Grafana on the Monitoring Server is necessary to track the health and performance metrics of the system.
+
+**How:** Prometheus is set to monitor the Application Server's Node Exporter, which provides system metrics (like CPU, memory, etc.) from the Application Server.
+
+**Outcome:** This allows real-time monitoring of the Application Server, which is crucial for observing system health and ensuring the ML pipeline performs efficiently.
+
+### 3. Nginx Server Configuration
+ 
+**Why:** Nginx is a reverse proxy for the UI Server that will direct traffic to the application interface.
+
+**Actions:** Nginx routes traffic to the appropriate backend (in this case, the Application Server running on port 5001).
+
+**Outcome:** By establishing this route, external users can access the frontend, and Nginx handles incoming requests securely and efficiently.
+
+### 4. Application Server Setup
+
+**Why:** Redis, configured on the Application Server, will allow data exchange with the ML model across our network.
+
+**How:** By modifying Redis to bind to all IPs (bind 0.0.0.0) and disabling protected mode, Redis can accept connections from external servers, such as the ML Training Server.
+
+**Outcome:** Redis serves as an intermediary, handling message queues or data storage, allowing the ML model on the Training Server to communicate with the Application Server.
+
+### 5. ML Training Server Configuration
+
+**Why**: Now we will prepare the ML Training Server to handle model training, inference, and integration with the Application Server.
+
+**How:** We first need to configure the inference.py file to connect to the Application Server’s private IP so the ML Training Server can transfer data or results directly to the Application Server. we then set up a virtual environment and install dependencies to prepare the server for running and updating the model.
+
+**Outcome:** After this setup, the trained model (best_model.keras) is transferred to the Application Server for direct access, enabling the Application Server to use this trained model for real-time inference.
+
+**6. Application Server Final Setup**
+
+**Why:** We now have to finalize the Application Server setup to host the inference API, so that the results can be accessible to the doctors in need of them.
+
+**How:** Set up the virtual environment, install dependencies, and run the API using Gunicorn, allowing the Application Server to handle inference requests.
+
+**Outcome:** This API acts as the entry point for other components (like the Frontend Server) to request predictions based on input data. Ensuring this is up and running completes the backend inference layer of the pipeline.
+
+**7. Frontend Server Configuration**
+
+**Why:** Finaly, we connect the frontend interface to the backend API on the Application Server to allow dynamic image uploads.
+
+**How:** Update the frontend application code to point to the backend’s private IP and run the application through Gunicorn.
+
+**Outcome:** This step exposes the frontend to users, allowing them to upload X-ray images and receive real-time results through the interface.
 
 ## How it Works:
 
