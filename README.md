@@ -1,6 +1,6 @@
 ## Purpose
 
-This project implements a sophisticated medical imaging analysis system for Mount Sinai Hospital that leverages deep learning to detect pneumonia in chest X-rays. The system provides an intuitive web interface for doctors to upload X-ray images and receive real-time predictions with detailed confidence scores. Beyond simple binary classification, the system provides a comprehensive infrastructure deployed on AWS with robust security measures, real-time performance monitoring, and efficient caching mechanisms.
+Hello! This Workload implements a sophisticated medical imaging analysis system for Mount Sinai Hospital that leverages deep learning to detect pneumonia in chest X-rays. The system provides an intuitive web interface for doctors to upload X-ray images and receive real-time predictions with detailed confidence scores. Beyond simple binary classification, the system provides a comprehensive infrastructure deployed on AWS with robust security measures, real-time performance monitoring, and efficient caching mechanisms.
 
 ## Technical Architecture Overview
 ### Infrastructure Components
@@ -57,6 +57,7 @@ This project implements a sophisticated medical imaging analysis system for Moun
 **1. X-Ray Image Upload (Doctor Interaction)**
 
 Step 1: The doctor accesses the pneumonia detection application through a web interface hosted on the frontend server in the public subnet.
+
 Step 2: The doctor uploads an X-ray image via this interface, which is implemented using Flask and HTMX. This request is sent to the Nginx reverse proxy.
 
 **2. Routing Through Nginx (Frontend Server)**
@@ -66,37 +67,48 @@ Step 3: The uploaded image request reaches the Nginx server on the frontend, whi
 **3. Receiving the Image (Backend Server)**
 
 Step 4: The backend server receives the image from Nginx and temporarily stores it in a dedicated directory. This server, which runs Flask and Gunicorn, handles the incoming request and prepares the data for processing.
+
 Step 5: The backend server saves metadata and the image path in Redis. Redis acts as a NoSQL database to temporarily store the uploaded image information and track the request, enabling the system to manage multiple simultaneous requests efficiently.
 
 **4. Processing the Image with the ML Model (ML Training Server)**
 
-Step 6: The backend server forwards the saved image path and necessary metadata to the ML Training server in the private subnet, which hosts the pneumonia detection ResNet convolutional neural network (CNN) model.
+Step 6: The backend server forwards the saved image path and necessary metadata to the ML Training server in the private subnet, which hosts a highly customized pneumonia detection ResNet convolutional neural network (CNN) model.
+
 Step 7: The ML server uses NVIDIA CUDA for GPU-accelerated processing, speeding up the analysis of the X-ray image.
+
 Step 8: The ResNet model processes the image and makes a binary prediction: pneumonia detected (positive) or not detected (negative). It also provides a confidence score for the prediction, indicating the model’s certainty.
 
 **6. Storing and Managing Prediction Results**
 
 Step 9: The ML Training server sends the prediction results, including the label (positive/negative) and confidence score, back to the backend server.
+
 Step 10: The backend server saves this prediction data in Redis to ensure fast retrieval. Redis enables the backend server to fetch and display the results promptly when the doctor checks the results page.
 
 **7. Displaying Results on the Frontend**
 
-Step 11: Once the prediction is stored in Redis, the backend server notifies the frontend interface that the prediction is ready.
-Step 12: The doctor can view the prediction results by refreshing the page or navigating to a dedicated results page on the frontend interface.
-Step 13: The frontend retrieves the prediction result from the backend server, which fetches it from Redis, and displays it on the webpage. This page includes details such as the X-ray file name, prediction label (e.g., "Pneumonia Detected"), and the confidence score.
+Step 11: Once the prediction is stored in Redis, the backend server notifies the frontend server via Gunicorn on port 5001 that the prediction is ready.
+
+Step 12: The doctor can view the prediction results by navigating to the webpage of the Public IP of the frontend server.
+
+Step 13: The frontend server retrieves the prediction result from the backend server, again via Gunicorn, which fetches it from Redis and displays it on the webpage. This page includes details such as the X-ray file name, prediction label (e.g., "Pneumonia Detected"), and the confidence score.
 
 **8. Monitoring the System (Monitoring Server)**
 
 Step 14: Prometheus on the monitoring server continuously scrapes metrics from the backend, ML Training server, and other components. These metrics include system performance, memory usage, CPU load, and the health of key processes like Gunicorn, Redis, and Nginx.
-Step 15: Prometheus provides these metrics to Grafana, where they are visualized through custom dashboards. Grafana alerts can notify administrators of any potential issues in real time, such as high load on the ML Training server or backend server failures.
+
+Step 15: Prometheus provides these metrics to Grafana, where they are visualized through custom dashboards. Grafana alerts can notify engineers of any potential issues in real time, such as high load on the ML Training server or backend server failures.
 
 **9. Data Storage and Retrieval**
 
 Step 16: The original X-ray images are stored in Amazon S3, enabling the application to archive and retrieve previous cases. This storage integration is optional but can aid in building a dataset for further training and improving the model’s accuracy.
 
+## System Diagram
+
+![image](https://github.com/user-attachments/assets/2ec2b4fe-e8b8-46c5-9136-8e477ed61017)
+
 ## Troubleshooting
 
-## Initial Model Issues
+### Initial Model Issues
 The baseline model exhibited severe bias, with a 100% pneumonia detection rate regardless of input. Key issues included:
 
 - Overconfident predictions (>0.95 confidence for all cases)
@@ -210,9 +222,58 @@ the `generator_wrapper` adds a third, placeholder element of one's in the shape 
 
 3) **Auto-scaling:** Configure auto-scaling for the ML and Application servers, allowing resources to scale based on user demand, optimizing cost and performance. Were we to implement the expansion plan spoken of above, the ML and Application servers would need to be in autoscaling groups to ensure they can always meet demand.
 
-4) **CloudWatch Implementation**: Switching from Prometheus and Grafana to the AWS managed service CloudWatch can lead to quicker, automated metric gatering and analysis on our ML and Application servers, and can lead to less downtime should the servers encountering an issue or otherwise be rendered offline. Finetuned alarms would ensure that we are always aware of the health of our servers.
+4) **Multi-AZ Deployment:** Continuing our push towards expanding to partner hospitals within the Mount Sinai Network, we would need to deploy the application across multiple Availability Zones, ensuring redundancy and avaiability should something happen to a part of the network in one AZ. Load Balancing and Auto-Scaling would work in concert to ensure the application remains avaiable to all doctors in need of access.
+
+5) **AWS Elasticache for Redis:** To complete our multi-AZ expansion for partner hospitals, we would need to employ AWS Elasticache for Redis to ensure that there is a Redis node in each of our AZ's, accessible by any doctor who needs to access the scans and the results of the Pneumonia Detection Model. Elasticache for Redis would allow us to enable Mutli-AZ with Auto Failover, so should something happen to a Redis node in one AZ, a replica node in another AZ can take it's place, ensuring minimal downtime and eliminating any single points of failure.
+
+6) **CloudWatch Implementation**: Switching from Prometheus and Grafana to the AWS managed service CloudWatch can lead to quicker, automated metric gatering and analysis on our ML and Application servers, and can lead to less downtime should the servers encountering an issue or otherwise be rendered offline. Finetuned alarms would ensure that we are always aware of the health of our servers.
+
+## Conclusion
+
+In this workload, we set out to develop a reliable and high-performing deep learning model that aids doctors at Mount Sinai Hospital in diagnosing pneumonia from X-ray images. Our solution salvaged an initially unreliable pneumonia detection model by incorporating advanced training techniques—such as class weighting, learning rate scheduling, and the addition of complex neural layers—to achieve an impressive 90% accuracy. Through thoughtful infrastructure provisioning and robust monitoring, the deployment is both secure and efficient, supporting real-time diagnostic assistance. Future optimizations will continue to enhance the model’s performance, scalability, and resilience in a clinical setting, making this a sustainable solution for medical image analysis.
 
 ### Documentation
+
+**Pneumonia ML Results Webpage**
+
+
+![image](https://github.com/user-attachments/assets/8a96c713-990f-4772-ba6a-3bbab2f9534a)
+
+
+**Positive Pneumonia Scan of Uploaded X-ray**
+
+
+![pneumonia_example](https://github.com/user-attachments/assets/737970ac-053b-4025-845a-ff152561253e)
+
+
+**Negative Pneumonia Scan of Uploaded X-ray**
+
+
+![normal_xray_2](https://github.com/user-attachments/assets/9db394d8-a6e8-4efb-bab6-7ddc0190e473)
+
+
+**ML Pneumonia Detection Model Training**
+
+
+![Real_Best Pnu_AI](https://github.com/user-attachments/assets/e283698f-1496-422f-af51-4b27c0edad60)
+
+
+**Pneumonia Detection Model Confusion Matrix Scores**
+
+
+![confusion_matrix](https://github.com/user-attachments/assets/3cc15be0-bdcf-448e-9b4a-88f750f5466e)
+
+
+**Grafana Dashboard View 1**
+
+
+![image](https://github.com/user-attachments/assets/481ae73f-cd33-40e7-b108-b28f9f657f1b)
+
+
+**Grafana Dashboard View 2**
+
+
+![image](https://github.com/user-attachments/assets/83746db7-737f-4fc9-b636-2920e415a8fb)
 
 
 
