@@ -243,13 +243,13 @@ In this workload, we set out to develop a reliable and high-performing deep lear
 **Positive Pneumonia Scan of Uploaded X-ray**
 
 
-![pneumonia_example](https://github.com/user-attachments/assets/737970ac-053b-4025-845a-ff152561253e)
+![Pneumonia_detected](https://github.com/user-attachments/assets/fef08964-8c14-4c33-b70e-d6ff7396545b)
 
 
 **Negative Pneumonia Scan of Uploaded X-ray**
 
 
-![normal_xray_2](https://github.com/user-attachments/assets/9db394d8-a6e8-4efb-bab6-7ddc0190e473)
+![Normal_scan](https://github.com/user-attachments/assets/972f95bc-332e-4cb5-947e-af15201dd632)
 
 
 **ML Pneumonia Detection Model Training**
